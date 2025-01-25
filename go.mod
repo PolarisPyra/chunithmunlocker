@@ -1,4 +1,4 @@
-module tui
+module chunithmUnlocker
 
 go 1.23.5
 
