@@ -2,7 +2,7 @@ hello:
 	echo "Hello"
 
 build:
-	go build -o .
+	go build -o .\build\ .\src\.
 
 run:
-	go run .
+	go run .\src\.
