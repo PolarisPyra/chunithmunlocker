@@ -13,6 +13,28 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func countSpecificXMLFiles(dir string, filenames []string) (map[string]int, error) {
+	counts := make(map[string]int)
+	for _, filename := range filenames {
+		counts[filename] = 0
+	}
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			for _, filename := range filenames {
+				if info.Name() == filename {
+					counts[filename]++
+				}
+			}
+		}
+		return nil
+	})
+	return counts, err
+}
+
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
@@ -255,4 +277,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m model) View() string {
+	switch m.view {
+	case "input":
+		return fmt.Sprintf(
+			"Enter the directory path:\n\n%s\n\nPress Enter to continue, or 'q' to quit.\n",
+			m.dirInput.View(),
+		)
+
+	case "main":
+		if m.showUpdated {
+			if len(m.changes) == 0 {
+				return baseStyle.Render("No changes made.") + "\nPress 'b' to go back.\n"
+			}
+
+			var changesText strings.Builder
+			for i, change := range m.changes {
+				if i == m.highlightPos {
+					changesText.WriteString(currentHighlightStyle.Render(change) + "\n")
+				} else {
+					changesText.WriteString(change + "\n")
+				}
+			}
+
+			return baseStyle.Render(changesText.String()) + "\nPress '↑' and '↓' to move highlight, 'b' to go back.\n"
+		}
+		return baseStyle.Render(m.table.View()) + "\nPress '1'-'5' to select, 'enter' to modify selected file, 'q' to quit.\n"
+	}
+
+	return ""
+}
+
+func main() {
+	m := initialModel()
+
+	if _, err := tea.NewProgram(m).Run(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
+	}
 }
