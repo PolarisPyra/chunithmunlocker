@@ -174,38 +174,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						switch filename {
 						case "Music.xml":
 							if strings.Contains(content, "<firstLock>true</firstLock>") {
-								change = fmt.Sprintf("Skipped %s: Already has <firstLock>true</firstLock>", path)
-							} else if strings.Contains(content, "<firstLock>false</firstLock>") {
-								updatedContent = strings.Replace(content, "<firstLock>false</firstLock>", "<firstLock>true</firstLock>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <firstLock>false</firstLock> to <firstLock>true</firstLock>", path)
+								updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path)
+							} else {
+								change = fmt.Sprintf("Skipped %s: Already has <firstLock>false</firstLock>", path)
 							}
 						case "Event.xml":
-							if strings.Contains(content, "<alwaysOpen>true</alwaysOpen>") {
-								change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
-							} else if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
+							if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
 								updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", 1)
 								change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
+							} else {
+								change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
 							}
-						case "Chara.xml":
-							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
-								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
-							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+						case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml":
+							if strings.Contains(content, "<defaultHave>false</defaultHave>") {
 								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
 								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
-							}
-						case "NamePlate.xml":
-							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
+							} else {
 								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
-							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
-							}
-						case "AvatarAccessory.xml":
-							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
-								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
-							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
 							}
 						default:
 							return nil
