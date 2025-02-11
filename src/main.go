@@ -226,7 +226,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					log.Printf("Error walking directory: %v\n", err)
 				}
-				m.view = "log" // Switch to log view after processing changes
+				m.view = "success"
 			case "1":
 				m.table.SetCursor(0)
 			case "2":
@@ -243,12 +243,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.table, cmd = m.table.Update(msg)
 		return m, cmd
 
-	case "log":
+	case "success":
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "b":
-				m.view = "main" // Go back to main view when 'b' is pressed
+				m.view = "main"
 			case "q", "ctrl+c":
 				return m, tea.Quit
 			}
