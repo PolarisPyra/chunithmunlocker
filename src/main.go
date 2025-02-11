@@ -39,20 +39,13 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-var currentHighlightStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("229")).
-	Background(lipgloss.Color("57")).
-	Bold(true)
-
 type model struct {
-	table        table.Model
-	fileCounts   map[string]int  // Stores the counts of all files
-	showUpdated  bool            // Tracks whether to show the updated text
-	changes      []string        // Stores all the changes made for the selected file
-	highlightPos int             // Tracks the highlight position within the last 5 changes
-	dirInput     textinput.Model // Input field for directory path
-	dir          string          // Stores the directory path
-	view         string          // Tracks the current view
+	table      table.Model
+	fileCounts map[string]int  // Stores the counts of all files
+	changes    []string        // Stores all the changes made for the selected file
+	dirInput   textinput.Model // Input field for directory path
+	dir        string          // Stores the directory path
+	view       string          // Tracks the current view
 }
 
 func initialModel() model {
@@ -132,7 +125,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "q", "ctrl+c":
 				return m, tea.Quit
+
 			}
+
 		}
 
 		m.dirInput, cmd = m.dirInput.Update(msg)
@@ -151,114 +146,87 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "q", "ctrl+c":
 				return m, tea.Quit
 			case "enter":
-				if !m.showUpdated {
-					m.changes = nil
+				m.changes = nil
 
-					err := filepath.Walk(m.dir, func(path string, info os.FileInfo, err error) error {
+				err := filepath.Walk(m.dir, func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+
+					selectedRow := m.table.SelectedRow()
+					if len(selectedRow) == 0 {
+						return nil
+					}
+
+					filename := selectedRow[1]
+
+					if !info.IsDir() && info.Name() == filename {
+						data, err := os.ReadFile(path)
 						if err != nil {
-							return err
-						}
-
-						selectedRow := m.table.SelectedRow()
-						if len(selectedRow) == 0 {
+							log.Printf("Error reading file %s: %v\n", path, err)
 							return nil
 						}
 
-						filename := selectedRow[1]
+						content := string(data)
+						var updatedContent string
+						var change string
 
-						if !info.IsDir() && info.Name() == filename {
-							data, err := os.ReadFile(path)
-							if err != nil {
-								log.Printf("Error reading file %s: %v\n", path, err)
-								return nil
+						switch filename {
+						case "Music.xml":
+							if strings.Contains(content, "<firstLock>true</firstLock>") {
+								change = fmt.Sprintf("Skipped %s: Already has <firstLock>true</firstLock>", path)
+							} else if strings.Contains(content, "<firstLock>false</firstLock>") {
+								updatedContent = strings.Replace(content, "<firstLock>false</firstLock>", "<firstLock>true</firstLock>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <firstLock>false</firstLock> to <firstLock>true</firstLock>", path)
 							}
-
-							content := string(data)
-							var updatedContent string
-
-							switch filename {
-							case "Music.xml":
-								if strings.Contains(content, "<firstLock>true</firstLock>") {
-									// Unlock: Change <firstLock>true</firstLock> to <firstLock>false</firstLock>
-									updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path))
-								} else if strings.Contains(content, "<firstLock>false</firstLock>") {
-									// Relock: Change <firstLock>false</firstLock> to <firstLock>true</firstLock>
-									updatedContent = strings.Replace(content, "<firstLock>false</firstLock>", "<firstLock>true</firstLock>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <firstLock>false</firstLock> to <firstLock>true</firstLock>", path))
-								}
-							case "Event.xml":
-								if strings.Contains(content, "<alwaysOpen>true</alwaysOpen>") {
-									updatedContent = strings.Replace(content, "<alwaysOpen>true</alwaysOpen>", "<alwaysOpen>false</alwaysOpen>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <alwaysOpen>true</alwaysOpen> to <alwaysOpen>false</alwaysOpen>", path))
-								} else if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
-									updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path))
-								}
-							case "Chara.xml":
-								if strings.Contains(content, "<defaultHave>true</defaultHave>") {
-									// Relock: Change <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>true</defaultHave>", "<defaultHave>false</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>", path))
-								} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-									// Unlock: Change <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path))
-								}
-							case "NamePlate.xml":
-								if strings.Contains(content, "<defaultHave>true</defaultHave>") {
-									// Relock: Change <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>true</defaultHave>", "<defaultHave>false</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>", path))
-								} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-									// Unlock: Change <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path))
-								}
-							case "AvatarAccessory.xml":
-								if strings.Contains(content, "<defaultHave>true</defaultHave>") {
-									// Relock: Change <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>true</defaultHave>", "<defaultHave>false</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>", path))
-								} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-									// Unlock: Change <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>
-									updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-									m.changes = append(m.changes, fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path))
-								}
-							default:
-								return nil
+						case "Event.xml":
+							if strings.Contains(content, "<alwaysOpen>true</alwaysOpen>") {
+								change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
+							} else if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
+								updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
 							}
+						case "Chara.xml":
+							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
+								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+							}
+						case "NamePlate.xml":
+							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
+								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+							}
+						case "AvatarAccessory.xml":
+							if strings.Contains(content, "<defaultHave>true</defaultHave>") {
+								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+							} else if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
+								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+							}
+						default:
+							return nil
+						}
+
+						if updatedContent != "" {
 							err = os.WriteFile(path, []byte(updatedContent), 0644)
 							if err != nil {
 								log.Printf("Error writing modified XML to file %s: %v\n", path, err)
 								return nil
 							}
 						}
-						return nil
-					})
-					if err != nil {
-						log.Printf("Error walking directory: %v\n", err)
-					}
 
-					if len(m.changes) > 5 {
-						m.changes = m.changes[len(m.changes)-5:]
+						m.changes = append(m.changes, change)
 					}
-
-					m.showUpdated = true
-					m.highlightPos = len(m.changes) - 1
+					return nil
+				})
+				if err != nil {
+					log.Printf("Error walking directory: %v\n", err)
 				}
-			case "b":
-				if m.showUpdated {
-					m.showUpdated = false
-				}
-			case "up":
-				if m.showUpdated && m.highlightPos > 0 {
-					m.highlightPos--
-				}
-			case "down":
-				if m.showUpdated && m.highlightPos < len(m.changes)-1 {
-					m.highlightPos++
-				}
+				m.view = "log" // Switch to log view after processing changes
 			case "1":
 				m.table.SetCursor(0)
 			case "2":
@@ -274,6 +242,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.table, cmd = m.table.Update(msg)
 		return m, cmd
+
+	case "log":
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "b":
+				m.view = "main" // Go back to main view when 'b' is pressed
+			case "q", "ctrl+c":
+				return m, tea.Quit
+			}
+		}
 	}
 
 	return m, nil
@@ -288,23 +267,15 @@ func (m model) View() string {
 		)
 
 	case "main":
-		if m.showUpdated {
-			if len(m.changes) == 0 {
-				return baseStyle.Render("No changes made.") + "\nPress 'b' to go back.\n"
-			}
-
-			var changesText strings.Builder
-			for i, change := range m.changes {
-				if i == m.highlightPos {
-					changesText.WriteString(currentHighlightStyle.Render(change) + "\n")
-				} else {
-					changesText.WriteString(change + "\n")
-				}
-			}
-
-			return baseStyle.Render(changesText.String()) + "\nPress '↑' and '↓' to move highlight, 'b' to go back.\n"
-		}
 		return baseStyle.Render(m.table.View()) + "\nPress '1'-'5' to select, 'enter' to modify selected file, 'q' to quit.\n"
+
+	case "log":
+		view := "Changes:\n"
+		for _, change := range m.changes {
+			view += change + "\n"
+		}
+		view += "\nPress 'b' to return to main view, 'q' to quit.\n"
+		return view
 	}
 
 	return ""
