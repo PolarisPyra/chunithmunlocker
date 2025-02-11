@@ -269,7 +269,7 @@ func (m model) View() string {
 	case "main":
 		return baseStyle.Render(m.table.View()) + "\nPress '1'-'5' to select, 'enter' to modify selected file, 'q' to quit.\n"
 
-	case "log":
+	case "success":
 		view := "Changes:\n"
 		for _, change := range m.changes {
 			view += change + "\n"
