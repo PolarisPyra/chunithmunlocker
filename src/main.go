@@ -80,7 +80,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.view = "main"
 
-				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml"}
+				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml"}
 				fileCounts, err := countSpecificXMLFiles(m.dir, filenames)
 				if err != nil {
 					log.Printf("Error scanning directory: %v\n", err)
@@ -100,13 +100,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					{"3", "Chara.xml", fmt.Sprintf("%d", fileCounts["Chara.xml"])},
 					{"4", "NamePlate.xml", fmt.Sprintf("%d", fileCounts["NamePlate.xml"])},
 					{"5", "AvatarAccessory.xml", fmt.Sprintf("%d", fileCounts["AvatarAccessory.xml"])},
+					{"6", "Trophy.xml", fmt.Sprintf("%d", fileCounts["Trophy.xml"])},
+
 				}
 
 				t := table.New(
 					table.WithColumns(columns),
 					table.WithRows(rows),
 					table.WithFocused(true),
-					table.WithHeight(6),
+					table.WithHeight(7),
 				)
 
 				s := table.DefaultStyles()
@@ -186,13 +188,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							} else {
 								change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
 							}
-						case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml":
+						case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml","Trophy.xml":
 							if strings.Contains(content, "<defaultHave>false</defaultHave>") {
 								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
 								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
 							} else {
 								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
 							}
+						
 						default:
 							return nil
 						}
@@ -222,6 +225,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "4":
 				m.table.SetCursor(3)
 			case "5":
+				m.table.SetCursor(4)
+			case "6":
 				m.table.SetCursor(4)
 			}
 		}
