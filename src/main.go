@@ -101,14 +101,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					{"4", "NamePlate.xml", fmt.Sprintf("%d", fileCounts["NamePlate.xml"])},
 					{"5", "AvatarAccessory.xml", fmt.Sprintf("%d", fileCounts["AvatarAccessory.xml"])},
 					{"6", "Trophy.xml", fmt.Sprintf("%d", fileCounts["Trophy.xml"])},
-
+					{"7", "Unlock all", "All files"},
 				}
 
 				t := table.New(
 					table.WithColumns(columns),
 					table.WithRows(rows),
 					table.WithFocused(true),
-					table.WithHeight(7),
+					table.WithHeight(8),
 				)
 
 				s := table.DefaultStyles()
@@ -150,70 +150,80 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.changes = nil
 
-				err := filepath.Walk(m.dir, func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
+				selectedRow := m.table.SelectedRow()
+				if len(selectedRow) == 0 {
+					return m, nil
+				}
 
-					selectedRow := m.table.SelectedRow()
-					if len(selectedRow) == 0 {
-						return nil
-					}
+				// If "UNLOCK ALL" is selected
+				isUnlockAll := selectedRow[0] == "7"
 
-					filename := selectedRow[1]
+				// Define which files to process
+				var filesToProcess []string
+				if isUnlockAll {
+					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml"}
+				} else {
+					filesToProcess = []string{selectedRow[1]}
+				}
 
-					if !info.IsDir() && info.Name() == filename {
-						data, err := os.ReadFile(path)
+				for _, fileToProcess := range filesToProcess {
+					err := filepath.Walk(m.dir, func(path string, info os.FileInfo, err error) error {
 						if err != nil {
-							log.Printf("Error reading file %s: %v\n", path, err)
-							return nil
+							return err
 						}
 
-						content := string(data)
-						var updatedContent string
-						var change string
-
-						switch filename {
-						case "Music.xml":
-							if strings.Contains(content, "<firstLock>true</firstLock>") {
-								updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path)
-							} else {
-								change = fmt.Sprintf("Skipped %s: Already has <firstLock>false</firstLock>", path)
-							}
-						case "Event.xml":
-							if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
-								updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
-							} else {
-								change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
-							}
-						case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml","Trophy.xml":
-							if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-								updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", 1)
-								change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
-							} else {
-								change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
-							}
-						
-						default:
-							return nil
-						}
-
-						if updatedContent != "" {
-							err = os.WriteFile(path, []byte(updatedContent), 0644)
+						if !info.IsDir() && info.Name() == fileToProcess {
+							data, err := os.ReadFile(path)
 							if err != nil {
-								log.Printf("Error writing modified XML to file %s: %v\n", path, err)
+								log.Printf("Error reading file %s: %v\n", path, err)
 								return nil
 							}
-						}
 
-						m.changes = append(m.changes, change)
+							content := string(data)
+							var updatedContent string
+							var change string
+
+							switch fileToProcess {
+							case "Music.xml":
+								if strings.Contains(content, "<firstLock>true</firstLock>") {
+									updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", -1)
+									change = fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path)
+								} else {
+									change = fmt.Sprintf("Skipped %s: Already has <firstLock>false</firstLock>", path)
+								}
+							case "Event.xml":
+								if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
+									updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", -1)
+									change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
+								} else {
+									change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
+								}
+							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml":
+								if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+									updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", -1)
+									change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+								} else {
+									change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+								}
+							default:
+								return nil
+							}
+
+							if updatedContent != "" {
+								err = os.WriteFile(path, []byte(updatedContent), 0644)
+								if err != nil {
+									log.Printf("Error writing modified XML to file %s: %v\n", path, err)
+									return nil
+								}
+							}
+
+							m.changes = append(m.changes, change)
+						}
+						return nil
+					})
+					if err != nil {
+						log.Printf("Error walking directory: %v\n", err)
 					}
-					return nil
-				})
-				if err != nil {
-					log.Printf("Error walking directory: %v\n", err)
 				}
 				m.view = "success"
 			case "1":
@@ -227,7 +237,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "5":
 				m.table.SetCursor(4)
 			case "6":
-				m.table.SetCursor(4)
+				m.table.SetCursor(5)
+			case "7":
+				m.table.SetCursor(6)
 			}
 		}
 
@@ -258,7 +270,7 @@ func (m model) View() string {
 		)
 
 	case "main":
-		return baseStyle.Render(m.table.View()) + "\nPress '1'-'5' to select, 'enter' to modify selected file, 'q' to quit.\n"
+		return baseStyle.Render(m.table.View()) + "\nPress '1'-'7' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
 
 	case "success":
 		view := "Changes:\n"
