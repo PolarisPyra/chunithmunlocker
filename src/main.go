@@ -109,7 +109,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					table.WithColumns(columns),
 					table.WithRows(rows),
 					table.WithFocused(true),
-					table.WithHeight(8),
+					table.WithHeight(9),
 				)
 
 				s := table.DefaultStyles()
