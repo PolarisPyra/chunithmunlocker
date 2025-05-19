@@ -102,6 +102,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					{"5", "AvatarAccessory.xml", fmt.Sprintf("%d", fileCounts["AvatarAccessory.xml"])},
 					{"6", "Trophy.xml", fmt.Sprintf("%d", fileCounts["Trophy.xml"])},
 					{"7", "Unlock all", "All files"},
+					{"8", "Relock all", "All files"},
 				}
 
 				t := table.New(
@@ -157,10 +158,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// If "UNLOCK ALL" is selected
 				isUnlockAll := selectedRow[0] == "7"
+				// If "RELOCK ALL" is selected
+				isRelockAll := selectedRow[0] == "8"
 
 				// Define which files to process
 				var filesToProcess []string
-				if isUnlockAll {
+				if isUnlockAll || isRelockAll {
 					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml"}
 				} else {
 					filesToProcess = []string{selectedRow[1]}
@@ -185,25 +188,52 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 							switch fileToProcess {
 							case "Music.xml":
-								if strings.Contains(content, "<firstLock>true</firstLock>") {
-									updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", -1)
-									change = fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path)
+								if isRelockAll {
+									if strings.Contains(content, "<firstLock>false</firstLock>") {
+										updatedContent = strings.Replace(content, "<firstLock>false</firstLock>", "<firstLock>true</firstLock>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <firstLock>false</firstLock> to <firstLock>true</firstLock>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <firstLock>true</firstLock>", path)
+									}
 								} else {
-									change = fmt.Sprintf("Skipped %s: Already has <firstLock>false</firstLock>", path)
+									if strings.Contains(content, "<firstLock>true</firstLock>") {
+										updatedContent = strings.Replace(content, "<firstLock>true</firstLock>", "<firstLock>false</firstLock>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <firstLock>true</firstLock> to <firstLock>false</firstLock>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <firstLock>false</firstLock>", path)
+									}
 								}
 							case "Event.xml":
-								if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
-									updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", -1)
-									change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
+								if isRelockAll {
+									if strings.Contains(content, "<alwaysOpen>true</alwaysOpen>") {
+										updatedContent = strings.Replace(content, "<alwaysOpen>true</alwaysOpen>", "<alwaysOpen>false</alwaysOpen>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>true</alwaysOpen> to <alwaysOpen>false</alwaysOpen>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>false</alwaysOpen>", path)
+									}
 								} else {
-									change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
+									if strings.Contains(content, "<alwaysOpen>false</alwaysOpen>") {
+										updatedContent = strings.Replace(content, "<alwaysOpen>false</alwaysOpen>", "<alwaysOpen>true</alwaysOpen>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <alwaysOpen>false</alwaysOpen> to <alwaysOpen>true</alwaysOpen>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
+									}
 								}
 							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml":
-								if strings.Contains(content, "<defaultHave>false</defaultHave>") {
-									updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", -1)
-									change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+								if isRelockAll {
+									if strings.Contains(content, "<defaultHave>true</defaultHave>") {
+										updatedContent = strings.Replace(content, "<defaultHave>true</defaultHave>", "<defaultHave>false</defaultHave>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <defaultHave>true</defaultHave> to <defaultHave>false</defaultHave>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <defaultHave>false</defaultHave>", path)
+									}
 								} else {
-									change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+									if strings.Contains(content, "<defaultHave>false</defaultHave>") {
+										updatedContent = strings.Replace(content, "<defaultHave>false</defaultHave>", "<defaultHave>true</defaultHave>", -1)
+										change = fmt.Sprintf("Updated %s: Changed <defaultHave>false</defaultHave> to <defaultHave>true</defaultHave>", path)
+									} else {
+										change = fmt.Sprintf("Skipped %s: Already has <defaultHave>true</defaultHave>", path)
+									}
 								}
 							default:
 								return nil
@@ -240,6 +270,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.table.SetCursor(5)
 			case "7":
 				m.table.SetCursor(6)
+			case "8":
+				m.table.SetCursor(7)
 			}
 		}
 
@@ -270,7 +302,7 @@ func (m model) View() string {
 		)
 
 	case "main":
-		return baseStyle.Render(m.table.View()) + "\nPress '1'-'7' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
+		return baseStyle.Render(m.table.View()) + "\nPress '1'-'8' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
 
 	case "success":
 		view := "Changes:\n"
