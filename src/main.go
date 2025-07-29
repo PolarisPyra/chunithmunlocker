@@ -81,7 +81,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.view = "main"
 
 				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml"}
-				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml"}
 				fileCounts, err := countSpecificXMLFiles(m.dir, filenames)
 				if err != nil {
 					log.Printf("Error scanning directory: %v\n", err)
@@ -178,15 +177,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// If "UNLOCK ALL" is selected
 				isUnlockAll := selectedRow[0] == "8"
-				isUnlockAll := selectedRow[0] == "8"
 				// If "RELOCK ALL" is selected
-				isRelockAll := selectedRow[0] == "9"
 				isRelockAll := selectedRow[0] == "9"
 
 				// Define which files to process
 				var filesToProcess []string
 				if isUnlockAll || isRelockAll {
-					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml"}
 					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml"}
 				} else {
 					filesToProcess = []string{selectedRow[1]}
@@ -242,7 +238,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 										change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
 									}
 								}
-							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml":
 							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml":
 								if isRelockAll {
 									if strings.Contains(content, "<defaultHave>true</defaultHave>") {
@@ -310,7 +305,6 @@ func (m model) View() string {
 		)
 
 	case "main":
-		return baseStyle.Render(m.table.View()) + "\nPress '1'-'9' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
 		return baseStyle.Render(m.table.View()) + "\nPress '1'-'9' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
 
 	case "success":
