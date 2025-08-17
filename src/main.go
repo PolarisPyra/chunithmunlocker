@@ -80,7 +80,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.view = "main"
 
-				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml"}
+				filenames := []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml", "Stage.xml"}
 				fileCounts, err := countSpecificXMLFiles(m.dir, filenames)
 				if err != nil {
 					log.Printf("Error scanning directory: %v\n", err)
@@ -103,15 +103,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					{"6", "Trophy.xml", fmt.Sprintf("%d", fileCounts["Trophy.xml"])},
 					{"7", "MapIcon.xml", fmt.Sprintf("%d", fileCounts["MapIcon.xml"])},
 					{"8", "SystemVoice.xml", fmt.Sprintf("%d", fileCounts["SystemVoice.xml"])},
-					{"9", "Unlock all", "All files"},
-					{"10", "Relock all", "All files"},
+					{"9", "Stage.xml", fmt.Sprintf("%d", fileCounts["Stage.xml"])},
+					{"10", "Unlock all", "All files"},
+					{"11", "Relock all", "All files"},
 				}
 
 				t := table.New(
 					table.WithColumns(columns),
 					table.WithRows(rows),
 					table.WithFocused(true),
-					table.WithHeight(11),
+					table.WithHeight(12),
 				)
 
 				s := table.DefaultStyles()
@@ -170,6 +171,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.table.SetCursor(8)
 			case "10":
 				m.table.SetCursor(9)
+			case "11":
+				m.table.SetCursor(10)
 			case "enter":
 				m.changes = nil
 
@@ -179,14 +182,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// If "UNLOCK ALL" is selected
-				isUnlockAll := selectedRow[0] == "9"
+				isUnlockAll := selectedRow[0] == "10"
 				// If "RELOCK ALL" is selected
-				isRelockAll := selectedRow[0] == "10"
+				isRelockAll := selectedRow[0] == "11"
 
 				// Define which files to process
 				var filesToProcess []string
 				if isUnlockAll || isRelockAll {
-					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml"}
+					filesToProcess = []string{"Music.xml", "Event.xml", "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml", "Stage.xml"}
 				} else {
 					filesToProcess = []string{selectedRow[1]}
 				}
@@ -241,7 +244,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 										change = fmt.Sprintf("Skipped %s: Already has <alwaysOpen>true</alwaysOpen>", path)
 									}
 								}
-							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml":
+							case "Chara.xml", "NamePlate.xml", "AvatarAccessory.xml", "Trophy.xml", "MapIcon.xml", "SystemVoice.xml", "Stage.xml":
 								if isRelockAll {
 									if strings.Contains(content, "<defaultHave>true</defaultHave>") {
 										updatedContent = strings.Replace(content, "<defaultHave>true</defaultHave>", "<defaultHave>false</defaultHave>", -1)
@@ -308,7 +311,7 @@ func (m model) View() string {
 		)
 
 	case "main":
-		return baseStyle.Render(m.table.View()) + "\nPress '1'-'10' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
+		return baseStyle.Render(m.table.View()) + "\nPress '1'-'11' to select, 'enter' to modify selected file(s), 'q' to quit.\n"
 
 	case "success":
 		view := "Changes:\n"
