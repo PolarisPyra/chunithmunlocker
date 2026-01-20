@@ -443,8 +443,8 @@ func processFilesAsync(dir string, filesToProcess map[string]bool, shouldRelock 
 }
 
 func transformXMLContent(filename, content, path string, shouldRelock bool, rules map[string]xmlTransformRule) (updated, message string) {
-	// Skip A000 files
-	if strings.Contains(path, "A000") {
+	// Skip A000 files when relocking
+	if shouldRelock && strings.Contains(path, "A000") {
 		message = fmt.Sprintf("%s %s: Skipped (A000)", msgSkipped, path)
 		return "", message
 	}
